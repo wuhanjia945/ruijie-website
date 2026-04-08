@@ -1,0 +1,1725 @@
+# 🚀 高级企业官网设计
+
+下面是一个完整的单文件企业官网，包含 **3D粒子背景、滚动动画、交互特效** 等：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>锐界科技 — 企业数字化解决方案专家</title>
+<style>
+  /* ========== CSS RESET & BASE ========== */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --primary: #6C5CE7;
+    --primary-light: #A29BFE;
+    --accent: #00CEFF;
+    --accent2: #FF6B9D;
+    --dark: #0A0A1A;
+    --dark2: #12122A;
+    --dark3: #1A1A3E;
+    --text: #E8E8F0;
+    --text-dim: #8888AA;
+    --glass: rgba(255,255,255,0.05);
+    --glass-border: rgba(255,255,255,0.08);
+    --glow: 0 0 40px rgba(108,92,231,0.3);
+  }
+  html { scroll-behavior: smooth; font-size: 16px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    overflow-x: hidden;
+    line-height: 1.7;
+  }
+  a { text-decoration: none; color: inherit; }
+  ul { list-style: none; }
+
+  /* ========== CUSTOM SCROLLBAR ========== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--dark); }
+  ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
+
+  /* ========== LOADING SCREEN ========== */
+  #loader {
+    position: fixed; inset: 0; z-index: 10000;
+    background: var(--dark);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.8s, visibility 0.8s;
+  }
+  #loader.hidden { opacity: 0; visibility: hidden; }
+  .loader-ring {
+    width: 60px; height: 60px;
+    border: 3px solid transparent;
+    border-top-color: var(--primary);
+    border-right-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  .loader-ring::before {
+    content: ''; position: absolute;
+    top: 6px; left: 6px; right: 6px; bottom: 6px;
+    border: 3px solid transparent;
+    border-bottom-color: var(--accent2);
+    border-left-color: var(--primary-light);
+    border-radius: 50%;
+    animation: spin 0.6s linear reverse infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ========== 3D CANVAS ========== */
+  #particle-canvas {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ========== CURSOR ========== */
+  .cursor {
+    width: 20px; height: 20px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    mix-blend-mode: difference;
+  }
+  .cursor.active {
+    transform: scale(2.5);
+    background: rgba(0,206,255,0.15);
+    border-color: var(--primary-light);
+  }
+  .cursor-dot {
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ========== NAVIGATION ========== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 1000;
+    padding: 1.2rem 4rem;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all 0.4s;
+    backdrop-filter: blur(0px);
+  }
+  nav.scrolled {
+    background: rgba(10,10,26,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 0.8rem 4rem;
+  }
+  .nav-logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .nav-logo span {
+    -webkit-text-fill-color: var(--accent);
+    font-weight: 300;
+  }
+  .nav-links { display: flex; gap: 2.5rem; }
+  .nav-links a {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    transition: color 0.3s;
+    position: relative;
+    font-weight: 500;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width 0.3s;
+  }
+  .nav-links a:hover { color: var(--text); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-cta {
+    padding: 0.6rem 1.8rem;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none; border-radius: 50px;
+    color: #fff; font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .nav-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(108,92,231,0.4);
+  }
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    z-index: 1001;
+  }
+  .hamburger span {
+    width: 25px; height: 2px;
+    background: var(--text);
+    transition: all 0.3s;
+  }
+
+  /* ========== HERO SECTION ========== */
+  .hero {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    padding: 6rem 4rem 4rem;
+    overflow: hidden;
+  }
+  .hero-bg-gradient {
+    position: absolute;
+    width: 800px; height: 800px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    animation: float 8s ease-in-out infinite;
+  }
+  .hero-bg-gradient.g1 {
+    background: var(--primary);
+    top: -200px; right: -200px;
+  }
+  .hero-bg-gradient.g2 {
+    background: var(--accent);
+    bottom: -300px; left: -200px;
+    animation-delay: -4s;
+  }
+  .hero-bg-gradient.g3 {
+    background: var(--accent2);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px; height: 500px;
+    opacity: 0.08;
+    animation-delay: -2s;
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+  }
+  .hero-content {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1.2rem;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 50px;
+    font-size: 0.8rem;
+    color: var(--accent);
+    margin-bottom: 2rem;
+    animation: fadeInUp 1s ease 0.2s both;
+  }
+  .hero-badge .dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.5); }
+  }
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+    animation: fadeInUp 1s ease 0.4s both;
+  }
+  .hero h1 .gradient-text {
+    background: linear-gradient(135deg, var(--primary-light), var(--accent), var(--accent2));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 4s ease-in-out infinite;
+  }
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% center; }
+    50% { background-position: 200% center; }
+  }
+  .hero p {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    max-width: 600px;
+    margin: 0 auto 2.5rem;
+    animation: fadeInUp 1s ease 0.6s both;
+  }
+  .hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeInUp 1s ease 0.8s both;
+  }
+  .btn-primary {
+    padding: 0.9rem 2.5rem;
+    background: linear-gradient(135deg, var(--primary), #5A4BD1);
+    border: none; border-radius: 50px;
+    color: #fff; font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--accent), var(--primary));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .btn-primary:hover::before { opacity: 1; }
+  .btn-primary span { position: relative; z-index: 1; }
+  .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(108,92,231,0.4);
+  }
+  .btn-secondary {
+    padding: 0.9rem 2.5rem;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    border-radius: 50px;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+  }
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,206,255,0.15);
+  }
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 4rem;
+    margin-top: 4rem;
+    animation: fadeInUp 1s ease 1s both;
+  }
+  .stat-item { text-align: center; }
+  .stat-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--text), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ========== SECTION COMMON ========== */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 7rem 4rem;
+  }
+  .section-header {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+  .section-tag {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 50px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .section-desc {
+    color: var(--text-dim);
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 1.05rem;
+  }
+
+  /* ========== SERVICES SECTION ========== */
+  .services { background: var(--dark2); }
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .service-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  .service-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .service-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .service-card:hover::before { opacity: 1; }
+  .service-card:hover {
+    transform: translateY(-10px);
+    border-color: rgba(108,92,231,0.3);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3), var(--glow);
+  }
+  .service-card .card-glow {
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  .service-card:hover .card-glow { opacity: 0.1; }
+  .service-icon {
+    width: 60px; height: 60px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .service-icon.si-1 { background: linear-gradient(135deg, rgba(108,92,231,0.2), rgba(108,92,231,0.05)); }
+  .service-icon.si-2 { background: linear-gradient(135deg, rgba(0,206,255,0.2), rgba(0,206,255,0.05)); }
+  .service-icon.si-3 { background: linear-gradient(135deg, rgba(255,107,157,0.2), rgba(255,107,157,0.05)); }
+  .service-icon.si-4 { background: linear-gradient(135deg, rgba(0,255,136,0.2), rgba(0,255,136,0.05)); }
+  .service-icon.si-5 { background: linear-gradient(135deg, rgba(255,165,0,0.2), rgba(255,165,0,0.05)); }
+  .service-icon.si-6 { background: linear-gradient(135deg, rgba(255,255,0,0.2), rgba(255,255,0,0.05)); }
+  .service-card h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    position: relative; z-index: 1;
+  }
+  .service-card p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    position: relative; z-index: 1;
+  }
+  .service-card .card-arrow {
+    display: inline-flex;
+    align-items: center; gap: 0.5rem;
+    margin-top: 1.2rem;
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 500;
+    position: relative; z-index: 1;
+    transition: gap 0.3s;
+  }
+  .service-card:hover .card-arrow { gap: 0.8rem; }
+
+  /* ========== WHY US SECTION ========== */
+  .why-us {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .why-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .why-visual {
+    position: relative;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .orbit-container {
+    position: relative;
+    width: 350px; height: 350px;
+  }
+  .orbit-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+    box-shadow: 0 0 60px rgba(108,92,231,0.4);
+    animation: rotateCenter 10s linear infinite;
+  }
+  @keyframes rotateCenter {
+    0% { border-radius: 20px; }
+    25% { border-radius: 30px 20px 30px 20px; }
+    50% { border-radius: 20px 30px 20px 30px; }
+    75% { border-radius: 30px 20px 30px 20px; }
+    100% { border-radius: 20px; }
+  }
+  .orbit-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    border: 1px dashed rgba(108,92,231,0.2);
+    border-radius: 50%;
+    animation: spin 20s linear infinite;
+  }
+  .orbit-ring:nth-child(2) { width: 200px; height: 200px; animation-duration: 15s; }
+  .orbit-ring:nth-child(3) { width: 280px; height: 280px; animation-duration: 20s; animation-direction: reverse; }
+  .orbit-ring:nth-child(4) { width: 350px; height: 350px; animation-duration: 25s; }
+  .orbit-dot {
+    position: absolute;
+    width: 40px; height: 40px;
+    background: var(--dark3);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    animation: counterSpin 20s linear infinite;
+  }
+  @keyframes counterSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+  .orbit-ring:nth-child(2) .orbit-dot { animation-duration: 15s; animation-direction: reverse; }
+  .orbit-ring:nth-child(3) .orbit-dot { animation-duration: 20s; }
+  .orbit-ring:nth-child(4) .orbit-dot { animation-duration: 25s; animation-direction: reverse; }
+
+  .why-features { display: flex; flex-direction: column; gap: 2rem; }
+  .why-feature {
+    display: flex; gap: 1.2rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+    transition: all 0.3s;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  .why-feature.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .why-feature:hover {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+  }
+  .why-feature-icon {
+    flex-shrink: 0;
+    width: 50px; height: 50px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    background: linear-gradient(135deg, rgba(108,92,231,0.15), rgba(0,206,255,0.15));
+  }
+  .why-feature h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+  .why-feature p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  /* ========== PROCESS SECTION ========== */
+  .process { background: var(--dark2); }
+  .process-timeline {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    flex-wrap: wrap;
+  }
+  .process-timeline::before {
+    content: '';
+    position: absolute;
+    top: 45px;
+    left: 10%;
+    right: 10%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), var(--accent), transparent);
+  }
+  .process-step {
+    flex: 1;
+    min-width: 180px;
+    text-align: center;
+    padding: 0 1rem;
+    position: relative;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .process-step.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .step-number {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: var(--dark);
+    border: 2px solid var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.2rem;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--accent);
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s;
+  }
+  .process-step:hover .step-number {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff;
+    transform: scale(1.2);
+    box-shadow: 0 0 30px rgba(108,92,231,0.5);
+  }
+  .process-step h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+  .process-step p {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  /* ========== TECHNOLOGY SECTION ========== */
+  .tech-marquee {
+    overflow: hidden;
+    padding: 3rem 0;
+    position: relative;
+  }
+  .tech-marquee::before, .tech-marquee::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 150px;
+    z-index: 2;
+  }
+  .tech-marquee::before {
+    left: 0;
+    background: linear-gradient(90deg, var(--dark), transparent);
+  }
+  .tech-marquee::after {
+    right: 0;
+    background: linear-gradient(-90deg, var(--dark), transparent);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 3rem;
+    animation: marquee 30s linear infinite;
+    width: max-content;
+  }
+  .marquee-track:hover { animation-play-state: paused; }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .tech-item {
+    padding: 0.8rem 2rem;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 50px;
+    white-space: nowrap;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+  .tech-item:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,206,255,0.05);
+  }
+
+  /* ========== TESTIMONIALS ========== */
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .testimonial-card {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    transition: all 0.4s;
+    position: relative;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .testimonial-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .testimonial-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(108,92,231,0.3);
+  }
+  .testimonial-card .quote-icon {
+    font-size: 3rem;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+  .testimonial-card blockquote {
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+  }
+  .testimonial-author {
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .author-avatar {
+    width: 45px; height: 45px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .author-info h5 {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .author-info span {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  /* ========== CTA SECTION ========== */
+  .cta-section {
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-box {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 4rem 3rem;
+    background: linear-gradient(135deg, rgba(108,92,231,0.15), rgba(0,206,255,0.1));
+    border: 1px solid rgba(108,92,231,0.2);
+    border-radius: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(108,92,231,0.1) 0%, transparent 60%);
+    animation: rotateBg 15s linear infinite;
+  }
+  @keyframes rotateBg {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .cta-box h2 {
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 800;
+    margin-bottom: 1rem;
+    position: relative; z-index: 1;
+  }
+  .cta-box p {
+    color: var(--text-dim);
+    margin-bottom: 2rem;
+    position: relative; z-index: 1;
+  }
+  .cta-box .btn-primary { position: relative; z-index: 1; }
+
+  /* ========== CONTACT SECTION ========== */
+  .contact { background: var(--dark2); }
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .contact-info h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .contact-info > p {
+    color: var(--text-dim);
+    margin-bottom: 2rem;
+  }
+  .contact-details { display: flex; flex-direction: column; gap: 1.2rem; }
+  .contact-item {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    transition: all 0.3s;
+  }
+  .contact-item:hover {
+    border-color: var(--primary);
+    transform: translateX(5px);
+  }
+  .contact-item-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(108,92,231,0.2), rgba(0,206,255,0.15));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .contact-item-text h5 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.1rem;
+  }
+  .contact-item-text span {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .form-row { display: flex; gap: 1.2rem; }
+  .form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .form-group label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .form-group input, .form-group textarea, .form-group select {
+    padding: 0.8rem 1rem;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.3s;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(108,92,231,0.15);
+  }
+  .form-group textarea { resize: vertical; min-height: 120px; }
+  .form-group select option { background: var(--dark2); }
+
+  /* ========== FOOTER ========== */
+  footer {
+    padding: 4rem 4rem 2rem;
+    border-top: 1px solid var(--glass-border);
+    position: relative;
+    z-index: 1;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 3rem;
+    max-width: 1200px;
+    margin: 0 auto 3rem;
+  }
+  .footer-brand .nav-logo { font-size: 1.8rem; margin-bottom: 1rem; display: inline-block; }
+  .footer-brand p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    max-width: 300px;
+  }
+  .footer-col h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 1.2rem;
+    color: var(--text);
+  }
+  .footer-col ul { display: flex; flex-direction: column; gap: 0.7rem; }
+  .footer-col a {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    transition: color 0.3s;
+  }
+  .footer-col a:hover { color: var(--accent); }
+  .footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid var(--glass-border);
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+
+  /* ========== SCROLL TO TOP ========== */
+  .scroll-top {
+    position: fixed;
+    bottom: 2rem; right: 2rem;
+    width: 45px; height: 45px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none; border-radius: 50%;
+    color: #fff; font-size: 1.2rem;
+    cursor: pointer;
+    z-index: 100;
+    opacity: 0; visibility: hidden;
+    transition: all 0.3s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .scroll-top.visible { opacity: 1; visibility: visible; }
+  .scroll-top:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(108,92,231,0.4); }
+
+  /* ========== FLOATING ELEMENTS ========== */
+  .floating-shapes {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .floating-shape {
+    position: absolute;
+    border: 1px solid rgba(108,92,231,0.1);
+    border-radius: 50%;
+    animation: floatShape 20s linear infinite;
+  }
+  @keyframes floatShape {
+    0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+  }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 1024px) {
+    .why-grid { grid-template-columns: 1fr; }
+    .why-visual { height: 350px; }
+    .orbit-container { width: 280px; height: 280px; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 768px) {
+    section { padding: 4rem 1.5rem; }
+    nav { padding: 1rem 1.5rem; }
+    nav.scrolled { padding: 0.8rem 1.5rem; }
+    .nav-links { display: none; }
+    .nav-cta { display: none; }
+    .hamburger { display: flex; }
+    .mobile-menu {
+      position: fixed;
+      top: 0; right: -100%;
+      width: 80%; max-width: 350px;
+      height: 100vh;
+      background: var(--dark2);
+      border-left: 1px solid var(--glass-border);
+      padding: 5rem 2rem 2rem;
+      transition: right 0.4s;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .mobile-menu.open { right: 0; }
+    .mobile-menu a {
+      font-size: 1.1rem;
+      color: var(--text);
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .mobile-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 998;
+      opacity: 0; visibility: hidden;
+      transition: all 0.3s;
+    }
+    .mobile-overlay.open { opacity: 1; visibility: visible; }
+    .hero { padding: 6rem 1.5rem 3rem; }
+    .hero-stats { gap: 2rem; flex-wrap: wrap; }
+    .services-grid { grid-template-columns: 1fr; }
+    .contact-grid { grid-template-columns: 1fr; }
+    .form-row { flex-direction: column; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .process-timeline { flex-direction: column; align-items: center; gap: 2rem; }
+    .process-timeline::before { display: none; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .cursor, .cursor-dot { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loader">
+  <div class="loader-ring" style="position:relative;"></div>
+</div>
+
+<!-- CUSTOM CURSOR -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<!-- 3D PARTICLE CANVAS -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- FLOATING SHAPES -->
+<div class="floating-shapes" id="floatingShapes"></div>
+
+<!-- NAVIGATION -->
+<nav id="navbar">
+  <div class="nav-logo">锐界<span>科技</span></div>
+  <div class="nav-links">
+    <a href="#services">服务项目</a>
+    <a href="#why-us">核心优势</a>
+    <a href="#process">合作流程</a>
+    <a href="#testimonials">客户评价</a>
+    <a href="#contact">联系我们</a>
+  </div>
+  <button class="nav-cta" onclick="scrollToSection('contact')">免费咨询</button>
+  <div class="hamburger" id="hamburger" onclick="toggleMobile()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobile()"></div>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#services" onclick="toggleMobile()">服务项目</a>
+  <a href="#why-us" onclick="toggleMobile()">核心优势</a>
+  <a href="#process" onclick="toggleMobile()">合作流程</a>
+  <a href="#testimonials" onclick="toggleMobile()">客户评价</a>
+  <a href="#contact" onclick="toggleMobile()">联系我们</a>
+</div>
+
+<!-- HERO SECTION -->
+<section class="hero" id="hero">
+  <div class="hero-bg-gradient g1"></div>
+  <div class="hero-bg-gradient g2"></div>
+  <div class="hero-bg-gradient g3"></div>
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      企业数字化解决方案专家
+    </div>
+    <h1>用科技赋能企业<br><span class="gradient-text">以专业成就未来</span></h1>
+    <p>我们提供从企业级应用开发到AI智能体构建的全方位数字化服务，一对一专属设计师全程跟进，让每一个项目都成为精品。</p>
+    <div class="hero-buttons">
+      <button class="btn-primary" onclick="scrollToSection('contact')"><span>立即开始咨询 →</span></button>
+      <button class="btn-secondary" onclick="scrollToSection('services')">探索服务</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-number" data-target="500">0</div>
+        <div class="stat-label">服务企业</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" data-target="98">0</div>
+        <div class="stat-label">客户满意度 %</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" data-target="12">0</div>
+        <div class="stat-label">年行业经验</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" data-target="24">0</div>
+        <div class="stat-label">小时售后响应</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES SECTION -->
+<section class="services" id="services">
+  <div class="section-header">
+    <div class="section-tag">Our Services</div>
+    <h2 class="section-title">全方位企业数字化服务</h2>
+    <p class="section-desc">从系统开发到AI赋能，我们为您的企业提供一站式数字化转型升级方案</p>
+  </div>
+  <div class="services-grid">
+    <div class="service-card" data-delay="0">
+      <div class="card-glow" style="background: var(--primary); top: -50px; right: -50px;"></div>
+      <div class="service-icon si-1">🏗️</div>
+      <h3>企业级应用开发</h3>
+      <p>ERP、OA、CRM等核心业务系统定制开发，深度贴合企业流程，助力管理效率全面提升。</p>
+      <div class="card-arrow">了解更多 →</div>
+    </div>
+    <div class="service-card" data-delay="100">
+      <div class="card-glow" style="background: var(--accent); top: -50px; right: -50px;"></div>
+      <div class="service-icon si-2">🤖</div>
+      <h3>智能客服系统</h3>
+      <p>基于大语言模型的智能客服，7×24小时在线，精准理解用户意图，大幅降低人工成本。</p>
+      <div class="card-arrow">了解更多 →</div>
+    </div>
+    <div class="service-card" data-delay="200">
+      <div class="card-glow" style="background: var(--accent2); top: -50px; right: -50px;"></div>
+      <div class="service-icon si-3">📚</div>
+      <h3>RAG企业知识库</h3>
+      <p>构建企业专属知识引擎，整合内部文档与数据，实现精准检索与智能问答，释放知识价值。</p>
+      <div class="card-arrow">了解更多 →</div>
+    </div>
+    <div class="service-card" data-delay="300">
+      <div class="card-glow" style="background: #00FF88; top: -50px; right: -50px;"></div>
+      <div class="service-icon si-4">🧠</div>
+      <h3>企业专属Agent</h3>
+      <p>打造企业专属AI智能体，自动化处理业务流程，从数据分析到决策支持，全程智能化。</p>
+      <div class="card-arrow">了解更多 →</div>
+    </div>
+    <div class="service-card" data-delay="400">
+      <div class="card-glow" style="background: #FFA500; top: -50px; right: -50px;"></div>
+      <div class="service-icon si-5">📧</div>
+      <h3>企业专用邮箱</h3>
+      <p>安全稳定的企业邮箱服务，支持自定义域名、邮件加密、反垃圾，保障企业通信安全。</p>
+      <div class="card-arrow">了解更多 →</div>
+    </div>
+    <div class="service-card" data-delay="500">
+      <div class="card-glow" style="background: #FFFF00; top: -50px; right: -50px;"></div>
+      <div class="service-icon si-6">🛠️</div>
+      <h3>本地工具定制</h3>
+      <p>各类桌面端/移动端本地化工具开发，数据处理、自动化脚本、效率工具，按需定制。</p>
+      <div class="card-arrow">了解更多 →</div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY US SECTION -->
+<section id="why-us">
+  <div class="why-us">
+    <div class="section-header">
+      <div class="section-tag">Why Choose Us</div>
+      <h2 class="section-title">为什么选择锐界科技？</h2>
+      <p class="section-desc">服务至上，品质为本 — 我们用行动诠释每一个承诺</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-visual">
+        <div class="orbit-container">
+          <div class="orbit-center">⚡</div>
+          <div class="orbit-ring">
+            <div class="orbit-dot" style="top: -20px; left: 50%; transform: translateX(-50%);">🎨</div>
+          </div>
+          <div class="orbit-ring">
+            <div class="orbit-dot" style="top: 50%; right: -20px; transform: translateY(-50%);">🔒</div>
+          </div>
+          <div class="orbit-ring">
+            <div class="orbit-dot" style="bottom: -20px; left: 50%; transform: translateX(-50%);">📊</div>
+          </div>
+        </div>
+      </div>
+      <div class="why-features">
+        <div class="why-feature" data-delay="0">
+          <div class="why-feature-icon">👨‍💻</div>
+          <div>
+            <h4>一对一专属设计师</h4>
+            <p>每位客户配备专属设计师与项目经理，全程跟进，确保需求精准落地，沟通零障碍。</p>
+          </div>
+        </div>
+        <div class="why-feature" data-delay="150">
+          <div class="why-feature-icon">🛡️</div>
+          <div>
+            <h4>售后无忧保障</h4>
+            <p>项目交付后提供长期维护服务，24小时内响应问题，定期巡检，系统稳定运行有保障。</p>
+          </div>
+        </div>
+        <div class="why-feature" data-delay="300">
+          <div class="why-feature-icon">🚀</div>
+          <div>
+            <h4>敏捷开发交付</h4>
+            <p>采用敏捷开发模式，分阶段交付，每阶段可视可测，确保项目按时高质量完成。</p>
+          </div>
+        </div>
+        <div class="why-feature" data-delay="450">
+          <div class="why-feature-icon">💡</div>
+          <div>
+            <h4>前沿技术驱动</h4>
+            <p>持续追踪AI、云计算、大数据等前沿技术，为企业提供最具竞争力的技术解决方案。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROCESS SECTION -->
+<section class="process" id="process">
+  <div class="section-header">
+    <div class="section-tag">Our Process</div>
+    <h2 class="section-title">专业合作流程</h2>
+    <p class="section-desc">标准化流程确保每个环节精益求精</p>
+  </div>
+  <div class="process-timeline">
+    <div class="process-step" data-delay="0">
+      <div class="step-number">01</div>
+      <h4>需求沟通</h4>
+      <p>深度了解企业需求，明确项目目标与范围</p>
+    </div>
+    <div class="process-step" data-delay="150">
+      <div class="step-number">02</div>
+      <h4>方案设计</h4>
+      <p>专属设计师输出详细方案与原型设计</p>
+    </div>
+    <div class="process-step" data-delay="300">
+      <div class="step-number">03</div>
+      <h4>敏捷开发</h4>
+      <p>分阶段迭代开发，每个节点确认反馈</p>
+    </div>
+    <div class="process-step" data-delay="450">
+      <div class="step-number">04</div>
+      <h4>测试上线</h4>
+      <p>全面测试验收，确保零缺陷交付上线</p>
+    </div>
+    <div class="process-step" data-delay="600">
+      <div class="step-number">05</div>
+      <h4>运维保障</h4>
+      <p>持续技术支持，定期优化升级服务</p>
+    </div>
+  </div>
+</section>
+
+<!-- TECH MARQUEE -->
+<section style="padding: 2rem 0; background: var(--dark);">
+  <div class="tech-marquee">
+    <div class="marquee-track">
+      <div class="tech-item">React / Next.js</div>
+      <div class="tech-item">Vue.js</div>
+      <div class="tech-item">Python / FastAPI</div>
+      <div class="tech-item">LangChain</div>
+      <div class="tech-item">RAG 架构</div>
+      <div class="tech-item">Docker / K8s</div>
+      <div class="tech-item">Spring Cloud</div>
+      <div class="tech-item">PostgreSQL</div>
+      <div class="tech-item">Redis</div>
+      <div class="tech-item">TensorFlow</div>
+      <div class="tech-item">微服务架构</div>
+      <div class="tech-item">AWS / 阿里云</div>
+      <!-- Duplicate for seamless loop -->
+      <div class="tech-item">React / Next.js</div>
+      <div class="tech-item">Vue.js</div>
+      <div class="tech-item">Python / FastAPI</div>
+      <div class="tech-item">LangChain</div>
+      <div class="tech-item">RAG 架构</div>
+      <div class="tech-item">Docker / K8s</div>
+      <div class="tech-item">Spring Cloud</div>
+      <div class="tech-item">PostgreSQL</div>
+      <div class="tech-item">Redis</div>
+      <div class="tech-item">TensorFlow</div>
+      <div class="tech-item">微服务架构</div>
+      <div class="tech-item">AWS / 阿里云</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="testimonials">
+  <div class="section-header">
+    <div class="section-tag">Testimonials</div>
+    <h2 class="section-title">客户真实评价</h2>
+    <p class="section-desc">听听合作伙伴怎么说</p>
+  </div>
+  <div class="testimonials-grid">
+    <div class="testimonial-card" data-delay="0">
+      <div class="quote-icon">"</div>
+      <blockquote>锐界科技为我们定制的ERP系统完美贴合了业务流程，效率提升了40%以上。一对一的服务模式让我们沟通非常顺畅，售后响应速度也令人印象深刻。</blockquote>
+      <div class="testimonial-author">
+        <div class="author-avatar">张</div>
+        <div class="author-info">
+          <h5>张明远</h5>
+          <span>某制造集团 · CTO</span>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card" data-delay="150">
+      <div class="quote-icon">"</div>
+      <blockquote>智能客服系统上线后，我们的客服成本降低了60%，用户满意度反而提升了。RAG知识库的构建让新员工培训时间缩短了一半，非常专业！</blockquote>
+      <div class="testimonial-author">
+        <div class="author-avatar">李</div>
+        <div class="author-info">
+          <h5>李思琪</h5>
+          <span>某电商企业 · VP</span>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card" data-delay="300">
+      <div class="quote-icon">"</div>
+      <blockquote>从需求沟通到最终交付，每一个环节都能感受到锐界团队的专业和用心。企业Agent的部署让我们的数据分析效率提升了数倍，强烈推荐！</blockquote>
+      <div class="testimonial-author">
+        <div class="author-avatar">王</div>
+        <div class="author-info">
+          <h5>王建国</h5>
+          <span>某金融科技公司 · CEO</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA SECTION -->
+<section class="cta-section">
+  <div class="cta-box">
+    <h2>准备好开启数字化之旅了吗？</h2>
+    <p>立即联系我们，获取专属解决方案与免费项目评估</p>
+    <button class="btn-primary" onclick="scrollToSection('contact')"><span>预约免费咨询 →</span></button>
+  </div>
+</section>
+
+<!-- CONTACT SECTION -->
+<section class="contact" id="contact">
+  <div class="contact-grid">
+    <div class="contact-info">
+      <h3>联系我们</h3>
+      <p>无论您有任何问题或需求，我们的团队随时准备为您提供帮助。填写表单或通过以下方式直接联系我们。</p>
+      <div class="contact-details">
+        <div class="contact-item">
+          <div class="contact-item-icon">📍</div>
+          <div class="contact-item-text">
+            <h5>公司地址</h5>
+            <span>北京市海淀区中关村科技园A座18层</span>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-item-icon">📞</div>
+          <div class="contact-item-text">
+            <h5>联系电话</h5>
+            <span>400-888-9999</span>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-item-icon">✉️</div>
+          <div class="contact-item-text">
+            <h5>商务邮箱</h5>
+            <span>contact@ruijie-tech.com</span>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-item-icon">🕐</div>
+          <div class="contact-item-text">
+            <h5>工作时间</h5>
+            <span>周一至周五 9:00 - 18:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <form class="contact-form" onsubmit="handleSubmit(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>您的姓名</label>
+          <input type="text" placeholder="请输入姓名" required>
+        </div>
+        <div class="form-group">
+          <label>联系电话</label>
+          <input type="tel" placeholder="请输入手机号" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>公司名称</label>
+        <input type="text" placeholder="请输入公司名称">
+      </div>
+      <div class="form-group">
+        <label>感兴趣的服务</label>
+        <select>
+          <option value="">请选择服务类型</option>
+          <option>企业级应用开发 (ERP/OA/CRM)</option>
+          <option>智能客服系统</option>
+          <option>RAG企业知识库</option>
+          <option>企业专属Agent</option>
+          <option>企业专用邮箱</option>
+          <option>本地工具定制</option>
+          <option>其他需求</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>项目描述</label>
+        <textarea placeholder="请简要描述您的需求或项目背景..."></textarea>
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%; padding: 1rem;"><span>提交咨询 →</span></button>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="nav-logo">锐界<span>科技</span></div>
+      <p>专注于为企业提供全方位的数字化解决方案，以技术创新驱动商业增长，让每一家企业都能享受科技带来的便利。</p>
+    </div>
+    <div class="footer-col">
+      <h4>核心服务</h4>
+      <ul>
+        <li><a href="#">企业应用开发</a></li>
+        <li><a href="#">智能客服系统</a></li>
+        <li><a href="#">RAG知识库</a></li>
+        <li><a href="#">企业Agent</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>解决方案</h4>
+      <ul>
+        <li><a href="#">ERP系统</a></li>
+        <li><a href="#">OA办公系统</a></li>
+        <li><a href="#">CRM客户管理</a></li>
+        <li><a href="#">企业邮箱</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>关于我们</h4>
+      <ul>
+        <li><a href="#">公司介绍</a></li>
+        <li><a href="#">团队风采</a></li>
+        <li><a href="#">新闻动态</a></li>
+        <li><a href="#">加入我们</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 锐界科技 RuiJie Tech. All rights reserved. | 京ICP备XXXXXXXX号</p>
+  </div>
+</footer>
+
+<!-- SCROLL TO TOP -->
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// ========== LOADER ==========
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+  }, 800);
+});
+
+// ========== CUSTOM CURSOR ==========
+const cursor = document.getElementById('cursor');
+const cursorDot = document.getElementById('cursorDot');
+let mouseX = 0, mouseY = 0, curX = 0, curY = 0;
+
+document.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  cursorDot.style.left = mouseX - 2.5 + 'px';
+  cursorDot.style.top = mouseY - 2.5 + 'px';
+});
+
+function animateCursor() {
+  curX += (mouseX - curX) * 0.15;
+  curY += (mouseY - curY) * 0.15;
+  cursor.style.left = curX - 10 + 'px';
+  cursor.style.top = curY - 10 + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+
+document.querySelectorAll('a, button, .service-card, .tech-item, .contact-item').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.classList.add('active'));
+  el.addEventListener('mouseleave', () => cursor.classList.remove('active'));
+});
+
+// ========== PARTICLE SYSTEM ==========
+const canvas = document.getElementById('particle-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+let w, h;
+
+function resizeCanvas() {
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Particle {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * w;
+    this.y = Math.random() * h;
+    this.size = Math.random() * 2 + 0.5;
+    this.speedX = (Math.random() - 0.5) * 0.5;
+    this.speedY = (Math.random() - 0.5) * 0.5;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.hue = Math.random() > 0.5 ? 250 : 190;
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    if (this.x < 0 || this.x > w) this.speedX *= -1;
+    if (this.y < 0 || this.y > h) this.speedY *= -1;
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, ${this.opacity})`;
+    ctx.fill();
+  }
+}
+
+const particleCount = Math.min(120, Math.floor(w * h / 15000));
+for (let i = 0; i < particleCount; i++) {
+  particles.push(new Particle());
+}
+
+let pmouseX = -1000, pmouseY = -1000;
+document.addEventListener('mousemove', (e) => {
+  pmouseX = e.clientX;
+  pmouseY = e.clientY;
+});
+
+function connectParticles() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 150) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(108, 92, 231, ${0.08 * (1 - dist / 150)})`;
+        ctx.lineWidth = 0.5;
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.stroke();
+      }
+    }
+    // Mouse connection
+    const mdx = particles[i].x - pmouseX;
+    const mdy = particles[i].y - pmouseY;
+    const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+    if (mDist < 200) {
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(0, 206, 255, ${0.15 * (1 - mDist / 200)})`;
+      ctx.lineWidth = 0.8;
+      ctx.moveTo(particles[i].x, particles[i].y);
+      ctx.lineTo(pmouseX, pmouseY);
+      ctx.stroke();
+    }
+  }
+}
+
+function animateParticles() {
+  ctx.clearRect(0, 0, w, h);
+  particles.forEach(p => {
+    p.update();
+    p.draw();
+  });
+  connectParticles();
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ========== FLOATING SHAPES ==========
+const shapesContainer = document.getElementById('floatingShapes');
+function createFloatingShape() {
+  const shape = document.createElement('div');
+  shape.className = 'floating-shape';
+  const size = Math.random() * 30 + 10;
+  shape.style.width = size + 'px';
+  shape.style.height = size + 'px';
+  shape.style.left = Math.random() * 100 + '%';
+  shape.style.animationDuration = (Math.random() * 15 + 15) + 's';
+  shape.style.animationDelay = Math.random() * 5 + 's';
+  shapesContainer.appendChild(shape);
+  setTimeout(() => shape.remove(), 30000);
+}
+setInterval(createFloatingShape, 2000);
+for (let i = 0; i < 5; i++) createFloatingShape();
+
+// ========== NAV SCROLL ==========
+const navbar = document.getElementById('navbar');
+const scrollTopBtn = document.getElementById('scrollTop');
+
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 80) {
+    navbar.classList.add('scrolled');
+  } else {
+    navbar.classList.remove('scrolled');
+  }
+  if (window.scrollY > 500) {
+    scrollTopBtn.classList.add('visible');
+  } else {
+    scrollTopBtn.classList.remove('visible');
+  }
+});
+
+// ========== MOBILE MENU ==========
+function toggleMobile() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.getElementById('mobileOverlay').classList.toggle('open');
+}
+
+// ========== SCROLL TO SECTION ==========
+function scrollToSection(id) {
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+}
+
+// ========== SCROLL ANIMATIONS ==========
+const observerOptions = {
+  threshold: 0.15,
+  rootMargin: '0px 0px -50px 0px'
+};
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const delay = entry.target.dataset.delay || 0;
+      setTimeout(() => {
+        entry.target.classList.add('visible');
+      }, delay);
+      observer.unobserve(entry.target);
+    }
+  });
+}, observerOptions);
+
+document.querySelectorAll('.service-card, .why-feature, .process-step, .testimonial-card').forEach(el => {
+  observer.observe(el);
+});
+
+// ========== COUNTER ANIMATION ==========
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const counters = entry.target.querySelectorAll('.stat-number');
+      counters.forEach(counter => {
+        const target = parseInt(counter.dataset.target);
+        const duration = 2000;
+        const step = target / (duration / 16);
+        let current = 0;
+        const timer = setInterval(() => {
+          current += step;
+          if (current >= target) {
+            current = target;
+            clearInterval(timer);
+          }
+          counter.textContent = Math.floor(current) + (target === 98 ? '%' : '+');
+        }, 16);
+      });
+      counterObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.5 });
+
+document.querySelectorAll('.hero-stats').forEach(el => counterObserver.observe(el));
+
+// ========== TILT EFFECT ON SERVICE CARDS ==========
+document.querySelectorAll('.service-card').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = (y - centerY) / 20;
+    const rotateY = (centerX - x) / 20;
+    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-10px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
+  });
+});
+
+// ========== FORM SUBMIT ==========
+function handleSubmit(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"] span');
+  const originalText = btn.textContent;
+  btn.textContent = '✓ 提交成功！';
+  btn.parentElement.style.background = 'linear-gradient(135deg, #00C853, #00E676)';
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.parentElement.style.background = '';
+    e.target.reset();
+  }, 3000);
+}
+
+// ========== SMOOTH REVEAL ON SCROLL ==========
+document.querySelectorAll('section').forEach(section => {
+  section.style.opacity = '0';
+  section.style.transform = 'translateY(30px)';
+  section.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+});
+
+const sectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+      sectionObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.05 });
+
+document.querySelectorAll('section').forEach(s => sectionObserver.observe(s));
+// Hero always visible
+document.querySelector('.hero').style.opacity = '1';
+document.querySelector('.hero').style.transform = 'translateY(0)';
+</script>
+
+</body>
+</html>
+```
+
+## ✨ 网站特性一览
+
+| 模块 | 特效/功能 |
+|------|----------|
+| 🎆 **粒子背景** | Canvas粒子系统，粒子间自动连线，跟随鼠标产生连接光效 |
+| 🖱️ **自定义光标** | 双层跟随光标，hover交互元素时放大发光 |
+| 🃏 **3D卡片倾斜** | 服务卡片跟随鼠标产生3D透视倾斜效果 |
+| 📊 **数字动画** | 滚动到视口时数字从0递增到目标值 |
+| 🎭 **滚动揭示** | 所有卡片/模块滚动进入视口时渐入动画 |
+| 🌀 **轨道动画** | "核心优势"区域的旋转轨道视觉效果 |
+| 🏷️ **技术栈跑马灯** | 无限循环滚动的技术标签展示 |
+| 📱 **完全响应式** | 移动端自适应 + 汉堡菜单 |
+| ⬆️ **回到顶部** | 滚动后出现的回到顶部按钮 |
+| 🔄 **加载动画** | 双层旋转加载环 |
+
+直接保存为 `.html` 文件在浏览器中打开即可预览完整效果！
